@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grip Studio - 고도화 프로토타입 v3</title>
+    <style>
+        :root {
+            --grip-purple: #6e50e9;
+            --bg-gray: #f2f2f2;
+            --border: #e0e0e0;
+        }
+        body { font-family: 'Pretendard', sans-serif; margin: 0; background: var(--bg-gray); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* 메인 레이아웃 */
+        .sidebar { width: 70px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding-top: 20px; }
+        .main-container { flex: 1; padding: 20px; overflow-y: auto; }
+        .section-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); }
+        .header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 리스트 아이템 */
+        .product-item { padding: 15px 20px; border-bottom: 1px solid #f9f9f9; display: flex; align-items: center; }
+        .prod-img { width: 60px; height: 60px; border-radius: 6px; margin-right: 15px; background-size: cover; background-position: center; border: 1px solid #eee; }
+        .img-coffee { background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=100'); }
+        .img-amond { background-image: url('https://images.unsplash.com/photo-1504113891439-59917cbb776b?w=100'); }
+        .prod-info { flex: 1; }
+        .prod-info h4 { margin: 0 0 5px 0; font-size: 15px; }
+        
+        .btn-purple { background: var(--grip-purple); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-outline { background: #fff; border: 1px solid #ddd; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+
+        /* 모달 공통 */
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-box { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.3); }
+
+        /* 가이드 팝업 */
+        .guide-box { width: 340px; text-align: center; padding: 40px 20px; }
+        .guide-icon { width: 80px; margin-bottom: 20px; }
+        .guide-title { font-size: 22px; font-weight: 800; margin-bottom: 15px; }
+        .guide-info { font-size: 14px; line-height: 1.8; margin-bottom: 25px; }
+        .guide-info b { color: #6e50e9; }
+        .btn-start { background: var(--grip-purple); color: #fff; border: none; width: 100%; padding: 15px; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+
+        /* 등록/수정 폼 */
+        .form-box { width: 500px; padding: 25px; }
+        .section-title { font-size: 18px; font-weight: 800; display: block; margin-bottom: 12px; color: #000; }
+        .capture-area { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; }
+        .btn-capture-full { width: 100%; padding: 12px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 25px; font-size: 14px; }
+
+        /* 이미지 슬롯 (밀어내기 대응) */
+        .img-slots { display: flex; gap: 10px; margin-bottom: 25px; }
+        .slot { width: 80px; height: 80px; border: 1px dashed #ccc; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #999; cursor: pointer; position: relative; background: #fafafa; background-size: cover; background-position: center; }
+        .slot.has-img { border: 1px solid var(--grip-purple); }
+        .slot.main-slot::before { content: '대표'; position: absolute; top:0; left:0; background: var(--grip-purple); color: #fff; padding: 1px 5px; font-size: 9px; border-radius: 7px 0 7px 0; z-index: 2; }
+        .btn-delete { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1.5px solid #fff; cursor: pointer; z-index: 3; }
+
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div style="width:34px; height:34px; background:var(--grip-purple); border-radius:8px;"></div>
+</div>
+
+<div class="main-container">
+    <div class="section-card">
+        <div class="header">
+            <h2 style="margin:0; font-size: 20px;">스토어</h2>
+            <button class="btn-purple" onclick="openModal('guide')">플래시 상품 등록</button>
+        </div>
+        <div id="product-list">
+            <div class="product-item">
+                <div class="prod-img img-coffee"></div>
+                <div class="prod-info">
+                    <h4>coffee</h4>
+                    <div style="font-size:13px; color:#666;">재고 3 | 500원</div>
+                </div>
+                <div class="action-btns">
+                    <button class="btn-outline" onclick="openModal('edit', {name:'coffee', stock:3, price:500})">수정</button>
+                    <button class="btn-outline" style="font-weight:bold;">NOW</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-guide">
+    <div class="modal-box guide-box">
+        <img src="https://cdn-icons-png.flaticon.com/512/685/685655.png" class="guide-icon" alt="camera">
+        <div class="guide-title">플래시 상품 등록</div>
+        <div class="guide-info">
+            판매종료 : <b>방송 시작 후 6시간</b><br>
+            카테고리 : <b>로퍼/플랫</b>
+        </div>
+        <button class="btn-start" onclick="openModal('form')">시작하기</button><br>
+        <button onclick="closeAll()" style="background:none; border:none; color:#999; cursor:pointer;">취소</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-form">
+    <div class="modal-box form-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+            <h3 id="form-title" style="margin:0; font-size:18px;">플래시 상품 등록</h3>
+            <span style="cursor:pointer; font-size:20px;" onclick="closeAll()">✕</span>
+        </div>
+
+        <span class="section-title">방송화면 실시간 캡처하기</span>
+        <div class="capture-area">[라이브 송출 화면]</div>
+        <button class="btn-capture-full" onclick="addImage('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=100')">📸 현재 화면 캡처</button>
+
+        <span class="section-title">이미지 업로드하기 (최대 5개)</span>
+        <div class="img-slots" id="slot-container">
+            </div>
+
+        <div class="input-group">
+            <label>상품제목</label>
+            <input type="text" id="in-name" placeholder="상품명을 입력하세요">
+        </div>
+        <div style="display:flex; gap:15px;">
+            <div class="input-group" style="flex:1"><label>판매수량</label><input type="number" id="in-stock" placeholder="개수"></div>
+            <div class="input-group" style="flex:1"><label>판매가격</label><input type="number" id="in-price" placeholder="원"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn-outline" style="flex:1; padding:15px;" onclick="closeAll()">취소</button>
+            <button class="btn-purple" style="flex:2; padding:15px;" id="submit-btn" onclick="completeProcess()">등록하기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let imageList = []; // 이미지 URL 저장 배열
+
+    function openModal(type, data = null) {
+        closeAll();
+        if(type === 'guide') {
+            document.getElementById('modal-guide').style.display = 'flex';
+        } else if(type === 'form' || type === 'edit') {
+            document.getElementById('modal-form').style.display = 'flex';
+            const isEdit = type === 'edit';
+            document.getElementById('form-title').innerText = isEdit ? '플래시 상품 수정' : '플래시 상품 등록';
+            document.getElementById('submit-btn').innerText = isEdit ? '수정 완료' : '등록하기';
+            
+            if(isEdit) {
+                document.getElementById('in-name').value = data.name;
+                document.getElementById('in-stock').value = data.stock;
+                document.getElementById('in-price').value = data.price;
+                imageList = ['https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=100']; // 수정 시 기존 이미지 재현
+            } else {
+                resetForm();
+            }
+            renderSlots();
+        }
+    }
+
+    function renderSlots() {
+        const container = document.getElementById('slot-container');
+        container.innerHTML = '';
+        
+        // 5개의 슬롯을 항상 유지
+        for(let i = 0; i < 5; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'slot';
+            if(i === 0) slot.classList.add('main-slot');
+            
+            if(imageList[i]) {
+                // 이미지가 있는 경우
+                slot.classList.add('has-img');
+                slot.style.backgroundImage = `url('${imageList[i]}')`;
+                slot.innerHTML = `<div class="btn-delete" onclick="removeImage(${i})">✕</div>`;
+            } else {
+                // 이미지가 없는 경우 (빈 슬롯)
+                if(i === 0) slot.innerText = '대표';
+                else if(i === imageList.length) slot.innerText = '+ 파일찾기';
+                else slot.innerText = '+';
+                slot.onclick = () => addImage('https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=100');
+            }
+            container.appendChild(slot);
+        }
+    }
+
+    function addImage(url) {
+        if(imageList.length >= 5) {
+            alert('최대 5개까지 등록 가능합니다.');
+            return;
+        }
+        imageList.push(url);
+        renderSlots();
+    }
+
+    function removeImage(index) {
+        event.stopPropagation();
+        // 배열에서 해당 인덱스 삭제 (뒤에 있는 요소들이 자동으로 앞으로 당겨짐)
+        imageList.splice(index, 1);
+        renderSlots();
+    }
+
+    function completeProcess() {
+        const mode = document.getElementById('submit-btn').innerText;
+        alert(`${mode}가 완료되었습니다.`);
+        closeAll(); // 레이어 팝업 닫기
+    }
+
+    function closeAll() {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    }
+
+    function resetForm() {
+        document.getElementById('in-name').value = '';
+        document.getElementById('in-stock').value = '';
+        document.getElementById('in-price').value = '';
+        imageList = [];
+    }
+</script>
+
+</body>
+</html>
